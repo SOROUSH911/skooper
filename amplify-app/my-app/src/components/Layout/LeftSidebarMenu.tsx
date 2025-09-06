@@ -100,6 +100,34 @@ const LeftSidebarMenu: React.FC<LeftSidebarProps> = ({ toggleActive }) => {
                 </Link>
               </Box>
 
+              {/* Videos Menu Item */}
+              <Box className="sidebar-single-menu" sx={{ mb: 1 }}>
+                <Link
+                  href="/videos"
+                  className={`sidemenu-link ${pathname === "/videos" ? "active" : ""}`}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "12px 16px",
+                    textDecoration: "none",
+                    color: pathname === "/videos" ? "#605dff" : "inherit",
+                    backgroundColor: pathname === "/videos" ? "rgba(96, 93, 255, 0.1)" : "transparent",
+                    borderRadius: "8px",
+                    transition: "all 0.3s ease"
+                  }}
+                >
+                  <i 
+                    className="material-symbols-outlined" 
+                    style={{ marginRight: "12px", fontSize: "20px" }}
+                  >
+                    video_library
+                  </i>
+                  <Typography component="span" sx={{ fontWeight: pathname === "/videos" ? 600 : 400 }}>
+                    Videos
+                  </Typography>
+                </Link>
+              </Box>
+
               {/* Future menu items will be added here by AI as features are built */}
               
             </Box>

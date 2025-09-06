@@ -25,6 +25,8 @@ import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import theme from "@/theme";
 import LayoutProvider from "@/providers/LayoutProvider";
+import ConfigureAmplifyClientSide from "@/components/ConfigureAmplify";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 export const metadata = {
   title: "Chill Components - AI-Powered Component Library",
@@ -41,12 +43,15 @@ export default function RootLayout(props: { children: React.ReactNode }) {
         />
       </head>
       <body>
+        <ConfigureAmplifyClientSide />
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
           <ThemeProvider theme={theme}>
             {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
             <CssBaseline />
-
-            <LayoutProvider>{props.children}</LayoutProvider>
+            
+            <AuthProvider>
+              <LayoutProvider>{props.children}</LayoutProvider>
+            </AuthProvider>
           </ThemeProvider>
         </AppRouterCacheProvider>
       </body>

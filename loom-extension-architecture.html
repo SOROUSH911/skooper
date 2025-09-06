@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loom Chrome Extension Architecture</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+        .diagram-container {
+            position: relative;
+            width: 100%;
+            height: 800px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            overflow: auto;
+            padding: 20px;
+        }
+        .component {
+            position: absolute;
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+        .component:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+        .component h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .component ul {
+            margin: 5px 0;
+            padding-left: 20px;
+            font-size: 0.9em;
+            color: #555;
+        }
+        .component li {
+            margin: 3px 0;
+        }
+        
+        /* Component Types */
+        .service-worker {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 250px;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .service-worker h3, .service-worker ul {
+            color: white;
+        }
+        
+        .content-script {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            width: 220px;
+        }
+        .content-script h3, .content-script ul {
+            color: white;
+        }
+        
+        .ui-component {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            width: 200px;
+        }
+        .ui-component h3, .ui-component ul {
+            color: white;
+        }
+        
+        .api-endpoint {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+            width: 200px;
+        }
+        .api-endpoint h3, .api-endpoint ul {
+            color: white;
+        }
+        
+        .web-api {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+            width: 180px;
+        }
+        .web-api h3, .web-api ul {
+            color: white;
+        }
+        
+        .permission {
+            background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+            color: white;
+            width: 160px;
+        }
+        .permission h3, .permission ul {
+            color: white;
+        }
+        
+        /* Connections */
+        .connection {
+            position: absolute;
+            background: rgba(0,0,0,0.2);
+            transform-origin: left center;
+            height: 2px;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .arrow {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 8px solid rgba(0,0,0,0.3);
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
+            right: -8px;
+            top: -3px;
+        }
+        
+        /* Legend */
+        .legend {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .legend h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .legend-item {
+            display: inline-block;
+            margin: 5px 15px;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            color: white;
+        }
+        
+        /* Info Box */
+        .info-box {
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            color: white;
+        }
+        .info-box h3 {
+            margin-bottom: 15px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .info-card {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+        .info-card h4 {
+            margin: 0 0 10px 0;
+            color: #ffd700;
+        }
+        .info-card p {
+            margin: 5px 0;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎥 Loom Chrome Extension Architecture</h1>
+        <p class="subtitle">Version 5.5.121 - Screen Recording & Capture System</p>
+        
+        <div class="diagram-container">
+            <!-- Service Worker (Background) -->
+            <div class="component service-worker">
+                <h3>⚙️ Service Worker</h3>
+                <ul>
+                    <li>sw.js (Main background)</li>
+                    <li>Redux state management</li>
+                    <li>Message routing</li>
+                    <li>Desktop/Tab capture</li>
+                    <li>Cookie management</li>
+                    <li>Alarm scheduling</li>
+                </ul>
+            </div>
+            
+            <!-- Content Scripts -->
+            <div class="component content-script" style="top: 250px; left: 100px;">
+                <h3>📝 Companion Bubble</h3>
+                <ul>
+                    <li>companionBubble.js</li>
+                    <li>Injected on key sites</li>
+                    <li>Figma, Google Docs</li>
+                    <li>Slack, GitHub, etc.</li>
+                </ul>
+            </div>
+            
+            <div class="component content-script" style="top: 250px; left: 350px;">
+                <h3>📧 Gmail Integration</h3>
+                <ul>
+                    <li>gmail.js</li>
+                    <li>Email enhancement</li>
+                    <li>Loom video embedding</li>
+                </ul>
+            </div>
+            
+            <div class="component content-script" style="top: 250px; left: 600px;">
+                <h3>🔗 Link Expander</h3>
+                <ul>
+                    <li>linkExpand.js</li>
+                    <li>GitHub, GitLab</li>
+                    <li>Salesforce, HubSpot</li>
+                    <li>Video previews</li>
+                </ul>
+            </div>
+            
+            <!-- UI Components -->
+            <div class="component ui-component" style="top: 450px; left: 50px;">
+                <h3>🎈 Bubble UI</h3>
+                <ul>
+                    <li>bubble.html/js</li>
+                    <li>Recording interface</li>
+                    <li>Camera preview</li>
+                </ul>
+            </div>
+            
+            <div class="component ui-component" style="top: 450px; left: 280px;">
+                <h3>🎬 Video Preview</h3>
+                <ul>
+                    <li>videoPreview.html/js</li>
+                    <li>Preview thumbnails</li>
+                    <li>Video controls</li>
+                </ul>
+            </div>
+            
+            <div class="component ui-component" style="top: 450px; left: 510px;">
+                <h3>📌 Pinned Tab</h3>
+                <ul>
+                    <li>pinnedTab.html/js</li>
+                    <li>Persistent UI</li>
+                    <li>Quick access</li>
+                </ul>
+            </div>
+            
+            <div class="component ui-component" style="top: 450px; left: 740px;">
+                <h3>🎵 Audio Visualizer</h3>
+                <ul>
+                    <li>audioVisualizer.html/js</li>
+                    <li>Audio processing</li>
+                    <li>Waveform display</li>
+                </ul>
+            </div>
+            
+            <div class="component ui-component" style="top: 620px; left: 50px;">
+                <h3>🚀 Popup</h3>
+                <ul>
+                    <li>popup.html/js</li>
+                    <li>Extension control</li>
+                    <li>Quick actions</li>
+                </ul>
+            </div>
+            
+            <div class="component ui-component" style="top: 620px; left: 280px;">
+                <h3>🔐 Permissions</h3>
+                <ul>
+                    <li>permissionsCheck.html/js</li>
+                    <li>Access requests</li>
+                    <li>Permission state</li>
+                </ul>
+            </div>
+            
+            <!-- APIs -->
+            <div class="component api-endpoint" style="top: 50px; left: 900px;">
+                <h3>🌐 Loom APIs</h3>
+                <ul>
+                    <li>loom.com/*</li>
+                    <li>Video upload</li>
+                    <li>User auth</li>
+                    <li>Video management</li>
+                </ul>
+            </div>
+            
+            <!-- Web APIs -->
+            <div class="component web-api" style="top: 450px; left: 970px;">
+                <h3>📹 Media APIs</h3>
+                <ul>
+                    <li>MediaRecorder</li>
+                    <li>getUserMedia</li>
+                    <li>getDisplayMedia</li>
+                </ul>
+            </div>
+            
+            <div class="component web-api" style="top: 620px; left: 970px;">
+                <h3>🔊 Audio APIs</h3>
+                <ul>
+                    <li>AudioWorklet</li>
+                    <li>WebAssembly</li>
+                    <li>Audio processing</li>
+                </ul>
+            </div>
+            
+            <!-- Chrome APIs -->
+            <div class="component permission" style="top: 250px; left: 900px;">
+                <h3>🔧 Chrome APIs</h3>
+                <ul>
+                    <li>desktopCapture</li>
+                    <li>tabCapture</li>
+                    <li>storage</li>
+                    <li>cookies</li>
+                    <li>alarms</li>
+                </ul>
+            </div>
+            
+            <!-- Additional Components -->
+            <div class="component content-script" style="top: 620px; left: 510px;">
+                <h3>📄 Content Script</h3>
+                <ul>
+                    <li>content.js</li>
+                    <li>Page injection</li>
+                    <li>DOM manipulation</li>
+                </ul>
+            </div>
+            
+            <div class="component ui-component" style="top: 620px; left: 740px;">
+                <h3>🎨 Embed View</h3>
+                <ul>
+                    <li>embedView.html/js</li>
+                    <li>Video embedding</li>
+                    <li>Iframe display</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <h3>Component Types</h3>
+            <span class="legend-item" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">Service Worker</span>
+            <span class="legend-item" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">Content Scripts</span>
+            <span class="legend-item" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">UI Components</span>
+            <span class="legend-item" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">External APIs</span>
+            <span class="legend-item" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">Web APIs</span>
+            <span class="legend-item" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);">Chrome APIs</span>
+        </div>
+        
+        <div class="info-box">
+            <h3>🔍 Key Features & Data Flow</h3>
+            <div class="info-grid">
+                <div class="info-card">
+                    <h4>📹 Recording Flow</h4>
+                    <p>1. User clicks extension icon or uses shortcut (Alt+Shift+L)</p>
+                    <p>2. Service Worker requests desktop/tab capture permissions</p>
+                    <p>3. MediaRecorder API captures video/audio streams</p>
+                    <p>4. WebAssembly muxer processes media data</p>
+                    <p>5. Upload to Loom servers via API</p>
+                </div>
+                
+                <div class="info-card">
+                    <h4>🌐 Site Integration</h4>
+                    <p>• Gmail: Inject compose buttons and video embeds</p>
+                    <p>• Slack/GitHub: Add companion bubble for quick recording</p>
+                    <p>• Google Docs/Figma: Context-aware recording features</p>
+                    <p>• Link expansion for video previews on supported sites</p>
+                </div>
+                
+                <div class="info-card">
+                    <h4>🔐 Permissions</h4>
+                    <p>• desktopCapture: Screen recording access</p>
+                    <p>• tabCapture: Browser tab recording</p>
+                    <p>• storage: Save user preferences</p>
+                    <p>• cookies: Authentication with Loom</p>
+                    <p>• activeTab: Current tab interaction</p>
+                </div>
+                
+                <div class="info-card">
+                    <h4>⚡ Performance Features</h4>
+                    <p>• Virtual background processing (libvirtualbg)</p>
+                    <p>• WebAssembly for media muxing</p>
+                    <p>• AudioWorklet for real-time processing</p>
+                    <p>• Redux for state management</p>
+                    <p>• Lazy loading of components</p>
+                </div>
+                
+                <div class="info-card">
+                    <h4>🎮 User Controls</h4>
+                    <p>• Keyboard shortcuts for recording control</p>
+                    <p>• Alt+Shift+C: Cancel recording</p>
+                    <p>• Alt+Shift+R: Restart recording</p>
+                    <p>• Alt+Shift+P: Pause/Resume</p>
+                    <p>• Context menus for quick actions</p>
+                </div>
+                
+                <div class="info-card">
+                    <h4>📊 Data Processing</h4>
+                    <p>• Audio visualization with waveforms</p>
+                    <p>• Video preview thumbnails</p>
+                    <p>• Live rewind capabilities</p>
+                    <p>• Blur and canvas effects</p>
+                    <p>• Template overlays (meeting, standup, etc.)</p>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+            <h3>🔄 Communication Flow</h3>
+            <ol style="color: #555; line-height: 1.8;">
+                <li><strong>User Interaction:</strong> Click extension icon or use keyboard shortcut</li>
+                <li><strong>Service Worker:</strong> Handles request, checks permissions, initializes capture</li>
+                <li><strong>Content Scripts:</strong> Inject UI components into active page if needed</li>
+                <li><strong>Media Capture:</strong> Chrome APIs (desktopCapture/tabCapture) + Web APIs (MediaRecorder)</li>
+                <li><strong>Processing:</strong> WebAssembly muxer, AudioWorklet for audio processing</li>
+                <li><strong>Storage:</strong> Temporary local storage during recording</li>
+                <li><strong>Upload:</strong> Stream to Loom servers via authenticated API calls</li>
+                <li><strong>Feedback:</strong> Update UI with recording status, preview, and share links</li>
+            </ol>
+        </div>
+    </div>
+    
+    <script>
+        // Add interactive tooltips
+        document.querySelectorAll('.component').forEach(comp => {
+            comp.addEventListener('click', function() {
+                const title = this.querySelector('h3').textContent;
+                const details = Array.from(this.querySelectorAll('li')).map(li => li.textContent).join(', ');
+                console.log(`Component: ${title}\nDetails: ${details}`);
+            });
+        });
+    </script>
+</body>
+</html>
