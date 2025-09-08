@@ -42,10 +42,11 @@
   "devDependencies": {
     "@aws-amplify/backend": "^1.16.1",
     "@aws-amplify/backend-cli": "^1.8.0",
+    "@types/aws-lambda": "^8.10.152",
     "@types/node": "^22.8.6",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "aws-cdk-lib": "^2.204.0",
+    "aws-cdk-lib": "^2.214.0",
     "constructs": "^10.4.2",
     "esbuild": "^0.25.9",
     "eslint": "^9.14.0",

@@ -1,0 +1,11 @@
+{
+  "name": "storage-triggers",
+  "version": "1.0.0",
+  "description": "Storage trigger Lambda functions",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.119"
+  }
+}

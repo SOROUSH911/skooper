@@ -27,6 +27,8 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VideoLibraryIcon from '@mui/icons-material/VideoLibrary';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
+import LinkIcon from '@mui/icons-material/Link';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { getUrl } from 'aws-amplify/storage';
 
 interface VideoItem {
@@ -218,6 +220,57 @@ export default function Videos() {
     } catch (error) {
       console.error('Error deleting video:', error);
       alert('Failed to delete video. Please try again.');
+    }
+  };
+
+  const generatePresignedUrl = async (videoPath: string, expiresIn: number = 86400) => {
+    try {
+      const urlResult = await getUrl({
+        path: videoPath,
+        options: {
+          validateObjectExistence: false,
+          expiresIn: expiresIn // Default 24 hours
+        }
+      });
+      return urlResult.url.toString();
+    } catch (error) {
+      console.error('Error generating presigned URL:', error);
+      throw error;
+    }
+  };
+
+  const copyPlayerLink = async (video: VideoItem) => {
+    try {
+      // Generate presigned URL with 7-day expiration
+      const presignedUrl = await generatePresignedUrl(video.path, 604800); // 7 days
+      
+      // Create player URL
+      const playerUrl = `${window.location.origin}/player?url=${encodeURIComponent(presignedUrl)}&title=${encodeURIComponent(extractFileName(video.path))}&expires=${Date.now() + 604800000}`;
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(playerUrl);
+      
+      // Show success message (you can replace with a snackbar)
+      alert('Player link copied to clipboard! Link expires in 7 days.');
+    } catch (error) {
+      console.error('Error copying player link:', error);
+      alert('Failed to generate player link. Please try again.');
+    }
+  };
+
+  const copyDirectLink = async (video: VideoItem) => {
+    try {
+      // Generate presigned URL with 24-hour expiration
+      const presignedUrl = await generatePresignedUrl(video.path, 86400); // 24 hours
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(presignedUrl);
+      
+      // Show success message
+      alert('Direct video link copied to clipboard! Link expires in 24 hours.');
+    } catch (error) {
+      console.error('Error copying direct link:', error);
+      alert('Failed to generate direct link. Please try again.');
     }
   };
 
@@ -482,7 +535,33 @@ export default function Videos() {
                   </Box>
                 </CardContent>
                   </Link>
-                  <CardActions sx={{ px: 2, pb: 2 }}>
+                  <CardActions sx={{ px: 2, pb: 2, display: 'flex', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          copyPlayerLink(video);
+                        }}
+                        title="Copy player link (7 days)"
+                      >
+                        <LinkIcon />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          copyDirectLink(video);
+                        }}
+                        title="Copy direct link (24 hours)"
+                      >
+                        <ContentCopyIcon />
+                      </IconButton>
+                    </Box>
                     <IconButton
                       size="small"
                       color="error"
@@ -491,7 +570,6 @@ export default function Videos() {
                         e.stopPropagation();
                         handleDelete(video.path);
                       }}
-                      sx={{ ml: 'auto' }}
                     >
                       <DeleteIcon />
                     </IconButton>
