@@ -93,6 +93,73 @@ export default function Videos() {
     fetchVideos();
   }, [fetchVideos]);
 
+  // Handle uploads from Chrome extension
+  React.useEffect(() => {
+    const handleExtensionUpload = async () => {
+      // Check if we have a pending upload from the extension
+      if (typeof chrome !== 'undefined' && chrome.storage) {
+        try {
+          const data = await chrome.storage.local.get('pendingVideoUpload');
+          if (data.pendingVideoUpload && user) {
+            console.log('Found pending video from extension');
+            
+            // Convert base64 to blob
+            const base64Response = await fetch(data.pendingVideoUpload.base64data);
+            const blob = await base64Response.blob();
+            
+            // Create File object
+            const file = new File([blob], data.pendingVideoUpload.fileName, {
+              type: data.pendingVideoUpload.type || 'video/webm'
+            });
+            
+            // Upload using existing upload logic
+            setUploading(true);
+            setUploadProgress(0);
+            setUploadingFileName(file.name);
+            setUploadingFileSize(file.size);
+            
+            const timestamp = Date.now();
+            const fileName = `${timestamp}-${file.name}`;
+            const filePath = `videos/${user.userId}/${fileName}`;
+            
+            await uploadData({
+              path: filePath,
+              data: file,
+              options: {
+                contentType: file.type,
+                onProgress: ({ transferredBytes, totalBytes }) => {
+                  if (totalBytes) {
+                    const progress = Math.round((transferredBytes / totalBytes) * 100);
+                    setUploadProgress(progress);
+                  }
+                }
+              }
+            }).result;
+            
+            // Clear the pending upload
+            await chrome.storage.local.remove('pendingVideoUpload');
+            console.log('Extension video uploaded successfully');
+            
+            // Refresh videos
+            await fetchVideos();
+            
+            setUploading(false);
+            setUploadProgress(0);
+            setUploadingFileName('');
+            setUploadingFileSize(0);
+          }
+        } catch (error) {
+          console.error('Error handling extension upload:', error);
+        }
+      }
+    };
+
+    // Check for extension upload when component mounts or user changes
+    if (user) {
+      handleExtensionUpload();
+    }
+  }, [user, fetchVideos]);
+
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;

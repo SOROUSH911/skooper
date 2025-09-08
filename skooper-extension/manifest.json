@@ -1,0 +1,55 @@
+{
+  "manifest_version": 3,
+  "name": "Skooper - Screen Recorder",
+  "description": "Record your screen and upload to Skooper instantly",
+  "version": "1.0.0",
+  "background": {
+    "service_worker": "js/background.js"
+  },
+  "permissions": [
+    "activeTab",
+    "desktopCapture",
+    "tabCapture",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "https://localhost:3000/*"
+  ],
+  "action": {
+    "default_popup": "html/popup.html",
+    "default_title": "Start Recording",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png", 
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "html/recorder.html",
+        "js/recorder.js",
+        "css/popup.css"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": ["http://localhost:3000/*", "https://localhost:3000/*"],
+      "js": ["js/content.js"]
+    }
+  ],
+  "externally_connectable": {
+    "matches": ["http://localhost:3000/*", "https://localhost:3000/*"]
+  }
+}
