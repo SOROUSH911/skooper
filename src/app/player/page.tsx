@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { 
   Box, 
   Typography, 
@@ -21,7 +22,7 @@ import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
 import SkipPreviousIcon from '@mui/icons-material/SkipPrevious';
 
-export default function Player() {
+function PlayerContent() {
   const searchParams = useSearchParams();
   const videoUrl = searchParams.get('url');
   const title = searchParams.get('title') || 'Video Player';
@@ -326,5 +327,13 @@ export default function Player() {
         </Stack>
       </Box>
     </Box>
+  );
+}
+
+export default function Player() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PlayerContent />
+    </Suspense>
   );
 }

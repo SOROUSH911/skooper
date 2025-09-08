@@ -14,7 +14,6 @@ import {
   CardMedia,
   CardActions, 
   Button,
-  Grid,
   LinearProgress,
   CircularProgress,
   Alert,
@@ -99,9 +98,9 @@ export default function Videos() {
   React.useEffect(() => {
     const handleExtensionUpload = async () => {
       // Check if we have a pending upload from the extension
-      if (typeof chrome !== 'undefined' && chrome.storage) {
+      if (typeof window !== 'undefined' && (window as any).chrome?.storage) {
         try {
-          const data = await chrome.storage.local.get('pendingVideoUpload');
+          const data = await (window as any).chrome.storage.local.get('pendingVideoUpload');
           if (data.pendingVideoUpload && user) {
             console.log('Found pending video from extension');
             
@@ -139,7 +138,7 @@ export default function Videos() {
             }).result;
             
             // Clear the pending upload
-            await chrome.storage.local.remove('pendingVideoUpload');
+            await (window as any).chrome.storage.local.remove('pendingVideoUpload');
             console.log('Extension video uploaded successfully');
             
             // Refresh videos
@@ -429,9 +428,9 @@ export default function Videos() {
 
       {/* Videos Grid */}
       {loading ? (
-        <Grid container spacing={3}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
           {[1, 2, 3, 4].map((item) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={item}>
+            <Box key={item} sx={{ flex: '1 1 calc(25% - 24px)', minWidth: '250px' }}>
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
                 <Skeleton variant="rectangular" height={180} />
                 <CardContent>
@@ -439,9 +438,9 @@ export default function Videos() {
                   <Skeleton variant="text" width="60%" />
                 </CardContent>
               </Card>
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       ) : videos.length === 0 ? (
         <Paper
           elevation={0}
@@ -463,13 +462,13 @@ export default function Videos() {
           </Typography>
         </Paper>
       ) : (
-        <Grid container spacing={3}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
           {videos.map((video) => {
             // Extract just the filename part from the path for the URL
             const videoId = video.path.split('/').pop() || video.path;
             
             return (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={video.path}>
+              <Box key={video.path} sx={{ flex: '1 1 calc(25% - 24px)', minWidth: '250px' }}>
                 <Card
                   elevation={0}
                   sx={{
@@ -575,10 +574,10 @@ export default function Videos() {
                     </IconButton>
                   </CardActions>
                 </Card>
-              </Grid>
+              </Box>
             );
           })}
-        </Grid>
+        </Box>
       )}
     </Box>
   );

@@ -3,7 +3,7 @@
 import React, { useState, ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import LeftSidebarMenu from "@/components/Layout/LeftSidebarMenu";
-import TopNavbar from "./../components/Layout/TopNavbar/index";
+import TopNavbar from "../components/Layout/TopNavbar/index";
 import Footer from "@/components/Layout/Footer";
 import ControlPanel from "@/components/Layout/ControlPanel";
 

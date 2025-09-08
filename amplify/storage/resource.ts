@@ -4,7 +4,7 @@ import { storageDeleteTrigger } from '../functions/storage-delete-trigger/resour
 
 export const storage = defineStorage({
   name: 'userVideos',
-  access: (allow) => ({
+  access: (allow: any) => ({
     'videos/*': [
       // Allow all authenticated users to upload, read, and delete videos
       allow.authenticated.to(['read', 'write', 'delete']),
