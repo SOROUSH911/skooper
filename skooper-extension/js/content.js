@@ -48,16 +48,18 @@ class SkooperContent {
         
         if (data.pendingVideoUpload) {
           console.log('Found pending upload, processing...');
-          // Wait for page to fully load
+          // Wait for page to fully load and React to initialize
           if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
-              this.handleVideoUpload(data.pendingVideoUpload);
+              setTimeout(() => {
+                this.handleVideoUpload(data.pendingVideoUpload);
+              }, 2000); // Wait 2 seconds for React to mount
             });
           } else {
-            // Page already loaded
+            // Page already loaded, wait for React to render
             setTimeout(() => {
               this.handleVideoUpload(data.pendingVideoUpload);
-            }, 500);
+            }, 3000); // Wait 3 seconds for React components
           }
         } else {
           console.log('No pending upload found');
@@ -103,10 +105,17 @@ class SkooperContent {
       console.log('Created file object:', file.name, file.size);
       
       // Find the upload button on the page and trigger it
-      const uploadButton = document.querySelector('input[type="file"][accept="video/*"]');
+      console.log('Looking for upload input...');
+      let uploadButton = document.querySelector('input[type="file"][accept="video/*"]');
+      
+      // If not found, try a broader search
+      if (!uploadButton) {
+        uploadButton = document.querySelector('input[type="file"]');
+        console.log('Fallback: Found file input:', uploadButton);
+      }
       
       if (uploadButton) {
-        console.log('Found upload input, triggering upload...');
+        console.log('Found upload input, triggering upload...', uploadButton);
         
         // Create a DataTransfer object to simulate file selection
         const dataTransfer = new DataTransfer();
@@ -129,22 +138,56 @@ class SkooperContent {
         
       } else {
         console.error('Could not find upload input on page');
-        // Fallback: try to click the upload button to open file picker
-        const uploadBtn = document.querySelector('button');
-        if (uploadBtn && uploadBtn.textContent.includes('Choose Video')) {
-          console.log('Found upload button, storing file for manual selection');
+        console.log('Available inputs:', document.querySelectorAll('input'));
+        console.log('Available buttons:', document.querySelectorAll('button'));
+        
+        // Try waiting a bit longer and search again
+        console.log('Waiting 2 seconds and trying again...');
+        setTimeout(async () => {
+          let retryUploadButton = document.querySelector('input[type="file"]');
+          if (retryUploadButton) {
+            console.log('Found upload input on retry:', retryUploadButton);
+            
+            // Create a DataTransfer object to simulate file selection
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            retryUploadButton.files = dataTransfer.files;
+            
+            // Trigger the change event
+            const changeEvent = new Event('change', { bubbles: true });
+            retryUploadButton.dispatchEvent(changeEvent);
+            
+            // Clear the pending upload
+            await chrome.storage.local.remove('pendingVideoUpload');
+            console.log('Upload triggered on retry');
+            
+            // Hide overlay
+            setTimeout(() => {
+              const overlay = document.getElementById('skooper-upload-overlay');
+              if (overlay) overlay.remove();
+            }, 1000);
+            
+            return;
+          }
           
-          // Store the file temporarily
-          window.skooperPendingFile = file;
-          
-          // Show instruction to user
-          this.showUploadError('Please click the "Choose Video to Upload" button and the video will be automatically selected.');
-          
-          // Clear storage
-          await chrome.storage.local.remove('pendingVideoUpload');
-        } else {
-          throw new Error('Could not find upload interface on this page');
-        }
+          // Fallback: try to click the upload button to open file picker
+          const uploadBtn = document.querySelector('button');
+          if (uploadBtn && uploadBtn.textContent && uploadBtn.textContent.includes('Choose Video')) {
+            console.log('Found upload button, storing file for manual selection');
+            
+            // Store the file temporarily
+            window.skooperPendingFile = file;
+            
+            // Show instruction to user
+            this.showUploadError('Please click the "Choose Video to Upload" button and the video will be automatically selected.');
+            
+            // Clear storage
+            await chrome.storage.local.remove('pendingVideoUpload');
+          } else {
+            this.showUploadError('Could not find upload interface on this page. Make sure you are on the /videos page and signed in.');
+            await chrome.storage.local.remove('pendingVideoUpload');
+          }
+        }, 2000);
       }
 
     } catch (error) {
@@ -388,6 +431,7 @@ class SkooperContent {
 }
 
 // Initialize content script
+// Simple localhost check for now
 if (window.location.hostname === 'localhost' && window.location.port === '3000') {
   console.log('Initializing SkooperContent on localhost:3000');
   new SkooperContent();

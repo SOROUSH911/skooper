@@ -28,6 +28,10 @@ class SkooperPopup {
       closeBtn: document.getElementById('close-btn')
     };
 
+    // Set initial toggle states to match recordingOptions
+    this.elements.cameraToggle.checked = this.recordingOptions.includeCamera;
+    this.elements.micToggle.checked = this.recordingOptions.includeAudio;
+
     // Set initial UI state
     this.updateToggleText();
   }

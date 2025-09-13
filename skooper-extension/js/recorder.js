@@ -68,22 +68,31 @@ class RecorderPage {
       
       console.log('Got desktop stream:', this.stream);
       
-      // Add camera if requested
-      if (options?.includeCamera) {
+      // Add camera if requested and enabled
+      if (options?.includeCamera === true) {
         try {
           console.log('Adding camera stream...');
-          const cameraStream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 320 }, height: { ideal: 240 } },
-            audio: options?.includeAudio
-          });
-          
+          const cameraConstraints = {
+            video: { width: { ideal: 320 }, height: { ideal: 240 } }
+          };
+
+          // Only add audio to camera stream if audio is enabled AND we don't already have audio
+          if (options?.includeAudio === true) {
+            cameraConstraints.audio = true;
+          }
+
+          const cameraStream = await navigator.mediaDevices.getUserMedia(cameraConstraints);
+
           // Combine streams
           const tracks = [...this.stream.getTracks(), ...cameraStream.getTracks()];
           this.stream = new MediaStream(tracks);
           console.log('Combined stream with camera');
         } catch (error) {
-          console.warn('Could not add camera (optional):', error);
+          console.warn('Could not add camera (this is optional):', error);
+          // Don't fail the entire recording if camera fails
         }
+      } else {
+        console.log('Camera disabled, skipping camera stream');
       }
       
       // Show preview
@@ -180,24 +189,33 @@ class RecorderPage {
       console.log('Stream tracks:', this.stream.getTracks());
 
       // Add camera stream if enabled (optional, don't fail if camera not available)
-      if (data.recordingOptions?.includeCamera) {
+      if (data.recordingOptions?.includeCamera === true) {
         try {
           console.log('Attempting to add camera...');
-          const cameraStream = await navigator.mediaDevices.getUserMedia({
-            video: { 
+          const cameraConstraints = {
+            video: {
               width: { ideal: 320 },
               height: { ideal: 240 }
-            },
-            audio: data.recordingOptions?.includeAudio
-          });
-          
+            }
+          };
+
+          // Only add camera audio if it's specifically enabled
+          if (data.recordingOptions?.includeAudio === true) {
+            cameraConstraints.audio = true;
+          }
+
+          const cameraStream = await navigator.mediaDevices.getUserMedia(cameraConstraints);
+
           console.log('Got camera stream, combining with desktop stream');
           // Combine streams if we have camera
           const tracks = [...this.stream.getTracks(), ...cameraStream.getTracks()];
           this.stream = new MediaStream(tracks);
         } catch (error) {
-          console.warn('Could not add camera (this is okay):', error);
+          console.warn('Could not add camera (this is optional):', error);
+          // Continue without camera - don't fail the recording
         }
+      } else {
+        console.log('Camera disabled in recording options, skipping camera');
       }
 
       // Show preview
@@ -351,7 +369,7 @@ class RecorderPage {
         });
         
         console.log('Video stored, opening upload page...');
-        // ALWAYS open localhost:3000/videos (don't check if it exists)
+        // Use localhost for now (will be configurable later)
         const targetUrl = 'http://localhost:3000/videos';
         
         // Just create a new tab or focus existing one
