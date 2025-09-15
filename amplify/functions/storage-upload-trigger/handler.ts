@@ -40,9 +40,12 @@ async function processUploadedVideo(record: S3EventRecord) {
     return;
   }
   
-  // Skip metadata files
-  if (key.includes('-metadata.json') || key.includes('-processed')) {
-    console.log(`Skipping already processed or metadata file: ${key}`);
+  // Skip metadata files and processed files to prevent recursion
+  if (key.includes('-metadata.json') ||
+      key.includes('-processed') ||
+      key.includes('-thumbnail') ||
+      key.endsWith('.json')) {
+    console.log(`Skipping processed/metadata file to prevent recursion: ${key}`);
     return;
   }
   

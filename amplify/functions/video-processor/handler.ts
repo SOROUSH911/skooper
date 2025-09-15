@@ -40,9 +40,13 @@ async function processVideo(record: S3EventRecord) {
     return;
   }
   
-  // Skip if already processed (has .mp4 extension)
-  if (key.endsWith('.mp4')) {
-    console.log(`File already in MP4 format: ${key}`);
+  // Skip if already processed or is a generated file
+  if (key.endsWith('.mp4') ||
+      key.includes('-processed') ||
+      key.includes('-metadata.json') ||
+      key.includes('-thumbnail') ||
+      key.endsWith('.json')) {
+    console.log(`Skipping already processed or generated file: ${key}`);
     return;
   }
   

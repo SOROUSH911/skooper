@@ -28,6 +28,7 @@ import VideoLibraryIcon from '@mui/icons-material/VideoLibrary';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import LinkIcon from '@mui/icons-material/Link';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { getUrl } from 'aws-amplify/storage';
 
 interface VideoItem {
@@ -488,6 +489,18 @@ export default function Videos() {
                   </Link>
                   <CardActions sx={{ px: 2, pb: 2, display: 'flex', justifyContent: 'space-between' }}>
                     <Box sx={{ display: 'flex', gap: 1 }}>
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          router.push(`/player/${encodeURIComponent(videoId)}`);
+                        }}
+                        title="Play in Enhanced Player"
+                      >
+                        <PlayArrowIcon />
+                      </IconButton>
                       <IconButton
                         size="small"
                         color="primary"

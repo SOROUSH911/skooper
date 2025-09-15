@@ -16,9 +16,7 @@
   "host_permissions": [
     "http://localhost:3000/*",
     "https://localhost:3000/*",
-    "https://*.amplifyapp.com/*",
-    "https://*.vercel.app/*",
-    "https://*.netlify.app/*"
+    "https://*.amplifyapp.com/*"
   ],
   "action": {
     "default_popup": "html/popup.html",
@@ -54,9 +52,7 @@
       "matches": [
         "http://localhost:3000/*",
         "https://localhost:3000/*",
-        "https://*.amplifyapp.com/*",
-        "https://*.vercel.app/*",
-        "https://*.netlify.app/*"
+        "https://*.amplifyapp.com/*"
       ],
       "js": ["js/config.js", "js/content.js"]
     }
@@ -65,9 +61,7 @@
     "matches": [
       "http://localhost:3000/*",
       "https://localhost:3000/*",
-      "https://*.amplifyapp.com/*",
-      "https://*.vercel.app/*",
-      "https://*.netlify.app/*"
+      "https://*.amplifyapp.com/*"
     ]
   }
 }
