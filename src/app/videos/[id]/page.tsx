@@ -277,40 +277,40 @@ Timestamps:
   }
 
   return (
-    <Box sx={{ maxWidth: '1800px', mx: 'auto', p: { xs: 0, md: 3 } }}>
-      <Grid container spacing={3}>
-        {/* Main Content */}
-        <Grid size={{ xs: 12, lg: 8 }}>
-          {/* Video Player */}
-          <Box 
-            sx={{ 
-              position: 'relative',
-              paddingTop: '56.25%',
-              bgcolor: 'black',
-              borderRadius: { xs: 0, md: 2 },
-              overflow: 'hidden',
-              mb: 2
-            }}
-          >
-            <video
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'contain'
-              }}
-              controls
-              autoPlay
-              src={videoUrl}
-            >
-              Your browser does not support the video tag.
-            </video>
-          </Box>
+    <Box sx={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
+      {/* Full-width Video Player - Auto-sizing container */}
+      <Box
+        sx={{
+          position: 'relative',
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'center',
+          bgcolor: 'black',
+          maxHeight: '80vh', // Limit maximum height
+        }}
+      >
+        <video
+          style={{
+            width: '100%',
+            height: 'auto',
+            maxHeight: '80vh',
+            display: 'block',
+            objectFit: 'contain'
+          }}
+          controls
+          autoPlay
+          src={videoUrl}
+        >
+          Your browser does not support the video tag.
+        </video>
+      </Box>
 
-          {/* Video Title and Actions */}
-          <Box sx={{ px: { xs: 2, md: 0 } }}>
+      {/* Content below video */}
+      <Box sx={{ flex: 1, overflow: 'auto', maxWidth: '1800px', mx: 'auto', width: '100%', p: { xs: 2, md: 3 } }}>
+        <Grid container spacing={3}>
+          {/* Main Content */}
+          <Grid size={{ xs: 12, lg: 8 }}>
+            {/* Video Title and Actions */}
             <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
               {videoData.title}
             </Typography>
@@ -578,7 +578,6 @@ Timestamps:
                 </Box>
               </TabPanel>
             </Paper>
-          </Box>
         </Grid>
 
         {/* Sidebar - Related Videos */}
@@ -641,6 +640,7 @@ Timestamps:
           </Box>
         </Grid>
       </Grid>
+      </Box>
     </Box>
   );
 }
