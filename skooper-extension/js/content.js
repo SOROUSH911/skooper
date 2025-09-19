@@ -97,31 +97,43 @@ class SkooperContent {
       console.log('Blob created:', blob.size, 'bytes');
 
       // Create a File object from the blob
-      const file = new File([blob], uploadData.fileName, { 
+      const file = new File([blob], uploadData.fileName, {
         type: uploadData.type || 'video/webm',
-        lastModified: uploadData.timestamp 
+        lastModified: uploadData.timestamp
       });
-      
+
       console.log('Created file object:', file.name, file.size);
-      
+      console.log('Video duration:', uploadData.duration, 'seconds');
+
+      // Store duration metadata in localStorage for the upload handler to use
+      if (uploadData.duration) {
+        const metadataKey = `video-metadata-${uploadData.fileName}`;
+        localStorage.setItem(metadataKey, JSON.stringify({
+          duration: uploadData.duration,
+          timestamp: uploadData.timestamp,
+          fileName: uploadData.fileName
+        }));
+        console.log('Stored video metadata in localStorage:', metadataKey);
+      }
+
       // Find the upload button on the page and trigger it
       console.log('Looking for upload input...');
       let uploadButton = document.querySelector('input[type="file"][accept="video/*"]');
-      
+
       // If not found, try a broader search
       if (!uploadButton) {
         uploadButton = document.querySelector('input[type="file"]');
         console.log('Fallback: Found file input:', uploadButton);
       }
-      
+
       if (uploadButton) {
         console.log('Found upload input, triggering upload...', uploadButton);
-        
+
         // Create a DataTransfer object to simulate file selection
         const dataTransfer = new DataTransfer();
         dataTransfer.items.add(file);
         uploadButton.files = dataTransfer.files;
-        
+
         // Trigger the change event
         const changeEvent = new Event('change', { bubbles: true });
         uploadButton.dispatchEvent(changeEvent);

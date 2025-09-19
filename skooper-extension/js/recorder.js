@@ -8,6 +8,7 @@ class RecorderPage {
     this.stream = null;
     this.startTime = null;
     this.timerInterval = null;
+    this.cameraBubble = null;
     
     this.setupEventListeners();
     this.initializeRecording();
@@ -68,31 +69,45 @@ class RecorderPage {
       
       console.log('Got desktop stream:', this.stream);
       
-      // Add camera if requested and enabled
+      // Add camera bubble if requested and enabled
       if (options?.includeCamera === true) {
         try {
-          console.log('Adding camera stream...');
+          console.log('Adding camera bubble...');
           const cameraConstraints = {
-            video: { width: { ideal: 320 }, height: { ideal: 240 } }
+            video: {
+              width: { ideal: 640 },
+              height: { ideal: 480 },
+              facingMode: 'user',
+              aspectRatio: { ideal: 1 }  // Try to get a square aspect ratio for better circle fit
+            }
           };
-
-          // Only add audio to camera stream if audio is enabled AND we don't already have audio
-          if (options?.includeAudio === true) {
-            cameraConstraints.audio = true;
-          }
 
           const cameraStream = await navigator.mediaDevices.getUserMedia(cameraConstraints);
 
-          // Combine streams
-          const tracks = [...this.stream.getTracks(), ...cameraStream.getTracks()];
-          this.stream = new MediaStream(tracks);
-          console.log('Combined stream with camera');
+          // Create camera bubble overlay
+          this.cameraBubble = new CameraBubble(cameraStream);
+          console.log('Camera bubble created');
+
+          // Add audio to main stream if enabled
+          if (options?.includeAudio === true) {
+            try {
+              const audioConstraints = { audio: true };
+              const audioStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
+              const audioTrack = audioStream.getAudioTracks()[0];
+              if (audioTrack) {
+                this.stream.addTrack(audioTrack);
+                console.log('Audio track added to stream');
+              }
+            } catch (audioError) {
+              console.warn('Could not add audio:', audioError);
+            }
+          }
         } catch (error) {
-          console.warn('Could not add camera (this is optional):', error);
+          console.warn('Could not add camera bubble (this is optional):', error);
           // Don't fail the entire recording if camera fails
         }
       } else {
-        console.log('Camera disabled, skipping camera stream');
+        console.log('Camera disabled, skipping camera bubble');
       }
       
       // Show preview
@@ -188,34 +203,45 @@ class RecorderPage {
       console.log('Got media stream:', this.stream);
       console.log('Stream tracks:', this.stream.getTracks());
 
-      // Add camera stream if enabled (optional, don't fail if camera not available)
+      // Add camera bubble if enabled (optional, don't fail if camera not available)
       if (data.recordingOptions?.includeCamera === true) {
         try {
-          console.log('Attempting to add camera...');
+          console.log('Attempting to add camera bubble...');
           const cameraConstraints = {
             video: {
-              width: { ideal: 320 },
-              height: { ideal: 240 }
+              width: { ideal: 640 },
+              height: { ideal: 480 },
+              facingMode: 'user',
+              aspectRatio: { ideal: 1 }  // Try to get a square aspect ratio for better circle fit
             }
           };
 
-          // Only add camera audio if it's specifically enabled
-          if (data.recordingOptions?.includeAudio === true) {
-            cameraConstraints.audio = true;
-          }
-
           const cameraStream = await navigator.mediaDevices.getUserMedia(cameraConstraints);
 
-          console.log('Got camera stream, combining with desktop stream');
-          // Combine streams if we have camera
-          const tracks = [...this.stream.getTracks(), ...cameraStream.getTracks()];
-          this.stream = new MediaStream(tracks);
+          console.log('Got camera stream, creating camera bubble');
+          // Create camera bubble overlay
+          this.cameraBubble = new CameraBubble(cameraStream);
+
+          // Add audio to main stream if enabled
+          if (data.recordingOptions?.includeAudio === true) {
+            try {
+              const audioConstraints = { audio: true };
+              const audioStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
+              const audioTrack = audioStream.getAudioTracks()[0];
+              if (audioTrack) {
+                this.stream.addTrack(audioTrack);
+                console.log('Audio track added to stream');
+              }
+            } catch (audioError) {
+              console.warn('Could not add audio:', audioError);
+            }
+          }
         } catch (error) {
-          console.warn('Could not add camera (this is optional):', error);
+          console.warn('Could not add camera bubble (this is optional):', error);
           // Continue without camera - don't fail the recording
         }
       } else {
-        console.log('Camera disabled in recording options, skipping camera');
+        console.log('Camera disabled in recording options, skipping camera bubble');
       }
 
       // Show preview
@@ -321,6 +347,13 @@ class RecorderPage {
 
   stopRecording() {
     console.log('Stopping recording...');
+
+    // Clean up camera bubble
+    if (this.cameraBubble) {
+      this.cameraBubble.destroy();
+      this.cameraBubble = null;
+    }
+
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       this.mediaRecorder.stop();
       this.updateStatus('Processing recording...');
@@ -343,19 +376,23 @@ class RecorderPage {
     try {
       console.log('Handling recording completion...');
       console.log('Total chunks recorded:', this.recordedChunks.length);
-      
+
+      // Calculate recording duration
+      const recordingDuration = this.startTime ? Math.floor((Date.now() - this.startTime) / 1000) : 0;
+      console.log('Recording duration:', recordingDuration, 'seconds');
+
       // Create blob from recorded chunks
       const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
       console.log('Created blob:', blob.size, 'bytes');
-      
+
       this.updateStatus('Preparing to upload...');
-      
+
       // Convert blob to base64 for storage
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64data = reader.result;
         const fileName = `recording-${Date.now()}.webm`;
-        
+
         console.log('Storing video in chrome.storage...');
         // Store the video data in chrome.storage for the content script to access
         await chrome.storage.local.set({
@@ -364,7 +401,8 @@ class RecorderPage {
             fileName: fileName,
             size: blob.size,
             type: 'video/webm',
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            duration: recordingDuration  // Add duration here
           }
         });
         

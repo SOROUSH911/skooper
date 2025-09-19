@@ -36,6 +36,7 @@ interface VideoItem {
   lastModified?: Date;
   size?: number;
   url?: string;
+  duration?: number;
 }
 
 export default function Videos() {
@@ -47,6 +48,7 @@ export default function Videos() {
   const [uploadProgress, setUploadProgress] = React.useState(0);
   const [uploadingFileName, setUploadingFileName] = React.useState<string>('');
   const [uploadingFileSize, setUploadingFileSize] = React.useState<number>(0);
+  const [videoDurations, setVideoDurations] = React.useState<{ [key: string]: number }>({});
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const fetchVideos = React.useCallback(async () => {
@@ -77,7 +79,7 @@ export default function Videos() {
         );
       });
 
-      // Get URLs for filtered video files only
+      // Get URLs and metadata for filtered video files
       const videosWithUrls = await Promise.all(
         videoFiles.map(async (item) => {
           try {
@@ -88,9 +90,33 @@ export default function Videos() {
                 expiresIn: 3600
               }
             });
+
+            // Try to fetch metadata file for duration
+            let duration: number | undefined;
+            try {
+              const metadataPath = item.path.replace(/\.[^/.]+$/, '') + '-metadata.json';
+              const metadataUrl = await getUrl({
+                path: metadataPath,
+                options: {
+                  validateObjectExistence: false,
+                  expiresIn: 60
+                }
+              });
+
+              const metadataResponse = await fetch(metadataUrl.url.toString());
+              if (metadataResponse.ok) {
+                const metadata = await metadataResponse.json();
+                duration = metadata.duration;
+              }
+            } catch (metaError) {
+              // Metadata file doesn't exist or couldn't be fetched
+              console.log('No metadata for', item.path);
+            }
+
             return {
               ...item,
-              url: urlResult.url.toString()
+              url: urlResult.url.toString(),
+              duration: duration
             } as VideoItem;
           } catch (error) {
             console.error('Error getting URL for', item.path, error);
@@ -129,15 +155,33 @@ export default function Videos() {
       setUploadingFileName(file.name);
       setUploadingFileSize(file.size);
 
+      // Check for metadata stored by extension
+      let duration: number | undefined;
+      const metadataKey = `video-metadata-${file.name}`;
+      const storedMetadata = localStorage.getItem(metadataKey);
+
+      if (storedMetadata) {
+        try {
+          const metadata = JSON.parse(storedMetadata);
+          duration = metadata.duration;
+          console.log('Found video metadata from extension:', metadata);
+          // Clean up localStorage
+          localStorage.removeItem(metadataKey);
+        } catch (e) {
+          console.error('Error parsing stored metadata:', e);
+        }
+      }
+
       const timestamp = Date.now();
       const fileName = `${timestamp}-${file.name}`;
       const filePath = `videos/${user.userId}/${fileName}`;
-      
+
       await uploadData({
         path: filePath,
         data: file,
         options: {
           contentType: file.type,
+          metadata: duration ? { duration: duration.toString() } : undefined,
           onProgress: ({ transferredBytes, totalBytes }) => {
             if (totalBytes) {
               const progress = Math.round((transferredBytes / totalBytes) * 100);
@@ -238,6 +282,18 @@ export default function Videos() {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const formatDuration = (seconds?: number) => {
+    if (!seconds || seconds === 0) return '0:00';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
   // Redirect to sign in if not authenticated
@@ -435,58 +491,85 @@ export default function Videos() {
                       boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
                     }
                   }}
+                  onClick={() => router.push(`/videos/${encodeURIComponent(videoId)}`)}
                 >
-                  <Link 
-                    href={`/videos/${encodeURIComponent(videoId)}`} 
-                    style={{ textDecoration: 'none', color: 'inherit' }}
-                  >
-                    <Box sx={{ position: 'relative', paddingTop: '56.25%', bgcolor: 'black' }}>
-                  {video.url ? (
-                    <video
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover'
-                      }}
-                      controls
-                      preload="metadata"
-                    >
-                      <source src={video.url + '#t=0.1'} type="video/mp4" />
-                    </video>
-                  ) : (
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)'
-                      }}
-                    >
-                      <PlayCircleOutlineIcon sx={{ fontSize: 48, color: 'grey.500' }} />
-                    </Box>
-                  )}
-                </Box>
-                <CardContent>
-                  <Typography variant="body1" sx={{ fontWeight: 500, mb: 1 }} noWrap>
-                    {extractFileName(video.path)}
-                  </Typography>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Chip 
-                      label={formatFileSize(video.size)} 
-                      size="small" 
-                      variant="outlined"
-                    />
-                    {video.lastModified && (
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {new Date(video.lastModified).toLocaleDateString()}
-                      </Typography>
+                  <Box sx={{ position: 'relative', paddingTop: '56.25%', bgcolor: 'black' }}>
+                    {video.url ? (
+                      <>
+                        <video
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                          }}
+                          controls
+                          preload="metadata"
+                          onLoadedMetadata={(e) => {
+                            const videoElement = e.currentTarget as HTMLVideoElement;
+                            const duration = videoElement.duration;
+                            if (duration && isFinite(duration)) {
+                              setVideoDurations(prev => ({
+                                ...prev,
+                                [video.path]: duration
+                              }));
+                            }
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <source src={video.url + '#t=0.1'} type="video/mp4" />
+                        </video>
+                        {/* Duration overlay */}
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            bottom: 8,
+                            right: 8,
+                            bgcolor: 'rgba(0, 0, 0, 0.8)',
+                            color: 'white',
+                            px: 0.75,
+                            py: 0.25,
+                            borderRadius: 0.5,
+                            fontSize: '0.875rem',
+                            fontWeight: 500,
+                            pointerEvents: 'none'
+                          }}
+                        >
+                          {formatDuration(video.duration || videoDurations[video.path])}
+                        </Box>
+                      </>
+                    ) : (
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)'
+                        }}
+                      >
+                        <PlayCircleOutlineIcon sx={{ fontSize: 48, color: 'grey.500' }} />
+                      </Box>
                     )}
                   </Box>
-                </CardContent>
-                  </Link>
+                  <CardContent>
+                    <Typography variant="body1" sx={{ fontWeight: 500, mb: 1 }} noWrap>
+                      {extractFileName(video.path)}
+                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Chip
+                        label={formatFileSize(video.size)}
+                        size="small"
+                        variant="outlined"
+                      />
+                      {video.lastModified && (
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                          {new Date(video.lastModified).toLocaleDateString()}
+                        </Typography>
+                      )}
+                    </Box>
+                  </CardContent>
                   <CardActions sx={{ px: 2, pb: 2, display: 'flex', justifyContent: 'space-between' }}>
                     <Box sx={{ display: 'flex', gap: 1 }}>
                       <IconButton
@@ -495,9 +578,9 @@ export default function Videos() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          router.push(`/player/${encodeURIComponent(videoId)}`);
+                          router.push(`/videos/${encodeURIComponent(videoId)}`);
                         }}
-                        title="Play in Enhanced Player"
+                        title="Play Video"
                       >
                         <PlayArrowIcon />
                       </IconButton>

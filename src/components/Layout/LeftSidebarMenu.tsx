@@ -60,8 +60,8 @@ const LeftSidebarMenu: React.FC<LeftSidebarProps> = ({ toggleActive }) => {
                     transition: "all 0.3s ease"
                   }}
                 >
-                  <i 
-                    className="material-symbols-outlined" 
+                  <i
+                    className="material-symbols-outlined"
                     style={{ marginRight: "12px", fontSize: "20px" }}
                   >
                     home
@@ -88,8 +88,8 @@ const LeftSidebarMenu: React.FC<LeftSidebarProps> = ({ toggleActive }) => {
                     transition: "all 0.3s ease"
                   }}
                 >
-                  <i 
-                    className="material-symbols-outlined" 
+                  <i
+                    className="material-symbols-outlined"
                     style={{ marginRight: "12px", fontSize: "20px" }}
                   >
                     newspaper
@@ -128,36 +128,8 @@ const LeftSidebarMenu: React.FC<LeftSidebarProps> = ({ toggleActive }) => {
                 </Link>
               </Box>
 
-              {/* Video Player Menu Item */}
-              <Box className="sidebar-single-menu" sx={{ mb: 1 }}>
-                <Link
-                  href="/player"
-                  className={`sidemenu-link ${pathname.startsWith("/player") ? "active" : ""}`}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    padding: "12px 16px",
-                    textDecoration: "none",
-                    color: pathname.startsWith("/player") ? "#605dff" : "inherit",
-                    backgroundColor: pathname.startsWith("/player") ? "rgba(96, 93, 255, 0.1)" : "transparent",
-                    borderRadius: "8px",
-                    transition: "all 0.3s ease"
-                  }}
-                >
-                  <i
-                    className="material-symbols-outlined"
-                    style={{ marginRight: "12px", fontSize: "20px" }}
-                  >
-                    play_circle
-                  </i>
-                  <Typography component="span" sx={{ fontWeight: pathname.startsWith("/player") ? 600 : 400 }}>
-                    Video Player
-                  </Typography>
-                </Link>
-              </Box>
-
               {/* Future menu items will be added here by AI as features are built */}
-              
+
             </Box>
           </Box>
         </Box>
